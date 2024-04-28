@@ -1,142 +1,71 @@
-<activity android:name="PreviewActivity"/>
-
-public class MainActivity extends AppCompatActivity {
-   Button preview, selectImage;
-   EditText name, email, phone, quali;
-   RadioButton male, female;
-   ImageView profileImage;
-   private static final int PICK_IMAGE = 1;
-   Uri imageUri;
-
-
-
-
-   @SuppressLint("MissingInflatedId")
-   @Override
-   protected void onCreate(Bundle savedInstanceState) {
-       super.onCreate(savedInstanceState);
-       setContentView(R.layout.input);
-
-
-
-
-       preview = findViewById(R.id.button);
-       selectImage = findViewById(R.id.select_image_button);
-       profileImage = findViewById(R.id.profile_image);
-
-
-
-
-       name = findViewById(R.id.e1);
-       email = findViewById(R.id.e2);
-       phone = findViewById(R.id.e3);
-       quali = findViewById(R.id.e4);
-
-
-
-
-       male = findViewById(R.id.male);
-       female = findViewById(R.id.female);
-
-
-
-
-       selectImage.setOnClickListener(new View.OnClickListener() {
-           @Override
-           public void onClick(View v) {
-               openGallery();
-           }
-       });
-
-
-
-
-       preview.setOnClickListener(new View.OnClickListener() {
-           @Override
-           public void onClick(View view) {
-               Intent i = new Intent(getApplicationContext(), Output.class);
-               i.putExtra("name", name.getText().toString());
-               i.putExtra("email", email.getText().toString());
-               i.putExtra("phone", phone.getText().toString());
-               i.putExtra("quali", quali.getText().toString());
-               i.putExtra("gender", (male.isChecked() ? "Male" : "Female"));
-               if (imageUri != null) {
-                   i.putExtra("imageUri", imageUri.toString());
-               }
-               startActivity(i);
-           }
-       });
-   }
-
-
-
-
-   private void openGallery() {
-       Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-       startActivityForResult(gallery, PICK_IMAGE);
-   }
-
-
-
-
-   @Override
-   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-       super.onActivityResult(requestCode, resultCode, data);
-
-
-
-
-       if (requestCode == PICK_IMAGE && resultCode == RESULT_OK && data != null && data.getData() != null) {
-           imageUri = data.getData();
-           try {
-               Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-               profileImage.setImageBitmap(bitmap);
-           } catch (IOException e) {
-               e.printStackTrace();
-           }
-       }
-   }
-}
-
-public class Output extends AppCompatActivity {
-   TextView name, email, phone, quali, gender;
-   ImageView profileImage;
-   private static final int PICK_IMAGE = 1;
-
-
-   @SuppressLint("MissingInflatedId")
-   @Override
-   protected void onCreate(Bundle savedInstanceState) {
-       super.onCreate(savedInstanceState);
-       setContentView(R.layout.output);
-
-
-       name = findViewById(R.id.t1);
-       email = findViewById(R.id.t2);
-       phone = findViewById(R.id.t3);
-       quali = findViewById(R.id.t4);
-       gender = findViewById(R.id.t5);
-       profileImage = findViewById(R.id.profile_image); // Add ImageView
-
-
-       Intent i = getIntent();
-       name.append("\t" + i.getStringExtra("name"));
-       email.append("\t" + i.getStringExtra("email"));
-       phone.append("\t" + i.getStringExtra("phone"));
-       quali.append("\t" + i.getStringExtra("quali"));
-       gender.append("\t" + i.getStringExtra("gender"));
-
-
-       // Load and display the profile image if available
-       String imageUriString = i.getStringExtra("imageUri");
-       if (imageUriString != null) {
-           Uri imageUri = Uri.parse(imageUriString);
-           try {
-               Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-               profileImage.setImageBitmap(bitmap);
-           } catch (IOException e) {
-               e.printStackTrace();
-           }
-       }
-   }
-}
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    Button b1,b2;
+    EditText e1,e2,e3,e4;
+    SQLiteDatabase db=null;
+ 
+ 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate( savedInstanceState );
+        setContentView( R.layout.activity_main );
+        e1=findViewById( R.id.editText1 );
+        e2=findViewById( R.id.editText2 );
+        e3=findViewById( R.id.editText3 );
+ 
+ 
+        e4=findViewById( R.id.editText4 );
+ 
+ 
+        b1=findViewById( R.id.button1 );
+        b2=findViewById( R.id.button2 );
+        //ActivityCompat.requestPermissions( this,new String[]{Manifest.permission.CALL_PHONE},1 );
+        b1.setOnClickListener( this );
+        b2.setOnClickListener( this );
+    }
+ 
+ 
+    @SuppressLint("Range")
+    @Override
+    public void onClick(View view) {
+        String name, usn,ph;
+        usn = e1.getText().toString();
+        name = e2.getText().toString();
+        ph = e3.getText().toString();
+        try {
+            db = this.openOrCreateDatabase( "stud01", MODE_PRIVATE, null );
+            db.execSQL("create table if not exists test(usn varchar(20),name varchar(20),phone varchar(20));");
+            if(view.getId()==b1.getId())
+            {
+                db.execSQL( "insert into test values('"+usn+"','"+name+"','"+ph+"');" );
+                Toast.makeText(getApplicationContext(),"Row inserted succesfully",Toast.LENGTH_SHORT ).show();
+            }
+            if(view.getId()==b2.getId())
+            {
+                Cursor c=db.rawQuery( "select * from test where usn='"+e4.getText().toString()+"';",null );
+                if(c.getCount()!=1)
+                {
+                    Toast.makeText( getApplicationContext(),"invalid",Toast.LENGTH_SHORT ).show();
+                }
+                else
+                {
+                    c.moveToNext();
+                    ph=c.getString( c.getColumnIndex( "phone") ) ;
+                    Intent i=new Intent( Intent.ACTION_DIAL );
+                    i.setData( Uri.parse("tel:"+ph) );
+                    startActivity( i );
+                }
+            }
+        }
+        catch (SQLiteException e)
+        {
+            Toast.makeText( getApplicationContext(),"Error",Toast.LENGTH_SHORT ).show();
+ 
+ 
+        }
+        finally {
+            if(db!=null)
+                db.close();
+        }
+    }
+ }
+ 
